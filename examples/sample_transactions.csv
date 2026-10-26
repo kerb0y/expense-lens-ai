@@ -1,0 +1,6 @@
+type,amount,category,note,date
+pemasukan,250000,penjualan,penjualan hari ini pelanggan toko,2026-10-27
+pengeluaran,50000,bahan_baku,beli beras supplier,2026-10-27
+pengeluaran,150000,operasional,bayar listrik toko,2026-10-27
+pemasukan,120000,jasa,jasa desain kemasan pelanggan,2026-10-26
+pengeluaran,80000,pemasaran,iklan instagram produk baru,2026-10-26

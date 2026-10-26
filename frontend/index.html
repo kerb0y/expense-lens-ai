@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ExpenseLens AI - Keuangan UMKM</title>
+<style>
+body { font-family: system-ui, sans-serif; max-width: 860px; margin: 24px auto; padding: 0 16px; color: #1f2937; }
+h1 { font-size: 28px; } h2 { margin-top: 32px; }
+.cards { display: flex; gap: 12px; flex-wrap: wrap; }
+.card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; flex: 1; min-width: 180px; }
+.card b { font-size: 22px; display: block; margin-top: 6px; }
+form, table { width: 100%; }
+input, select, button { padding: 10px; margin: 4px 0; font-size: 15px; }
+input, select { width: 100%; box-sizing: border-box; }
+button { background: #111827; color: white; border: 0; border-radius: 8px; cursor: pointer; }
+table { border-collapse: collapse; margin-top: 12px; }
+th, td { border-bottom: 1px solid #e5e7eb; text-align: left; padding: 8px; }
+.note { color: #6b7280; font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>ExpenseLens AI</h1>
+<p class="note">Catat pemasukan dan pengeluaran UMKM. Tulis catatan seperti biasa, kategori akan ditebak otomatis, dan laba dihitung langsung.</p>
+
+<div class="cards">
+  <div class="card">Pemasukan<b id="total-in">Rp 0</b></div>
+  <div class="card">Pengeluaran<b id="total-out">Rp 0</b></div>
+  <div class="card">Laba<b id="profit">Rp 0</b></div>
+</div>
+
+<h2>Tambah Transaksi</h2>
+<form id="form">
+  <select id="type"><option value="pemasukan">Pemasukan</option><option value="pengeluaran">Pengeluaran</option></select>
+  <input id="amount" type="number" step="1" min="1" placeholder="Jumlah (Rp)" required>
+  <input id="note" placeholder="Catatan, contoh: beli beras supplier" required>
+  <input id="date" type="date" required>
+  <input id="category" placeholder="Kategori (opsional, kosongkan untuk otomatis)">
+  <button type="submit">Simpan Transaksi</button>
+</form>
+<p class="note" id="suggestion"></p>
+
+<h2>Transaksi Terakhir</h2>
+<table><thead><tr><th>Tanggal</th><th>Jenis</th><th>Kategori</th><th>Catatan</th><th>Jumlah</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+
+<script>
+const fmt = n => 'Rp ' + Number(n).toLocaleString('id-ID');
+async function load() {
+  const s = await (await fetch('/api/summary')).json();
+  document.getElementById('total-in').textContent = fmt(s.total_pemasukan);
+  document.getElementById('total-out').textContent = fmt(s.total_pengeluaran);
+  document.getElementById('profit').textContent = fmt(s.laba);
+  const d = await (await fetch('/api/transactions')).json();
+  document.getElementById('rows').innerHTML = d.transactions.map(t => `<tr><td>${t.date}</td><td>${t.type}</td><td>${t.category}</td><td>${t.note}</td><td>${fmt(t.amount)}</td><td><button onclick="hapus(${t.id})">Hapus</button></td></tr>`).join('');
+}
+async function hapus(id) { await fetch('/api/transactions/' + id, {method: 'DELETE'}); load(); }
+document.getElementById('note').addEventListener('input', async (e) => {
+  const type = document.getElementById('type').value;
+  if (e.target.value.length < 3) return;
+  const r = await (await fetch('/api/categorize', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({note: e.target.value, type})})).json();
+  document.getElementById('suggestion').textContent = 'Kategori ditebak: ' + r.category + (r.matched_keyword ? ' (kata kunci: ' + r.matched_keyword + ')' : '');
+});
+document.getElementById('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = {type: document.getElementById('type').value, amount: parseFloat(document.getElementById('amount').value), note: document.getElementById('note').value, date: document.getElementById('date').value, category: document.getElementById('category').value || null};
+  await fetch('/api/transactions', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  e.target.reset(); load();
+});
+load();
+</script>
+</body>
+</html>

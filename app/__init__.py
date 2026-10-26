@@ -1,0 +1,1 @@
+"""ExpenseLens AI application package."""
